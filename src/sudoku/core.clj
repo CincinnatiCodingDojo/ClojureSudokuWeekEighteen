@@ -1,5 +1,6 @@
 (ns sudoku.core
-  (:gen-class))
+  (:gen-class)
+  (:require [clojure.set :refer :all]))
 
 
 
@@ -35,7 +36,30 @@
   (let [grid-index (first-of-region index)]
     (-> (map (partial + grid-index) [0 1 2 9 10 11 18 19 20])
         set
-        (disj index))
-    )
+        (disj index))))
 
-)
+(defn get-peers [index]
+  (clojure.set/union (row-peers index)
+    (column-peers index)
+    (region-peers index)))
+
+(defn remove-candidate-value [value board index]
+  (let [cellValues (board index)]
+    (assoc board index (disj cellValues value))))
+
+(defn set-value [board index value]
+  (let [board' (assoc board index #{value})
+        peers (get-peers index)]
+    (reduce (partial remove-candidate-value value) board' peers)))
+
+(defn characterize-board [board]
+  (let [set-has-one-value (fn [cell]
+                            (= 1 (count cell)))
+        set-has-no-valid-values (fn [cell]
+                                  (= 0 (count cell)))]
+    (if (every? set-has-one-value board)
+      :solved
+      (if (not-any? set-has-no-valid-values board)
+      :unsolved
+      :contradictory
+      ))))
